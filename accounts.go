@@ -1,4 +1,4 @@
-package oanda_api
+package oanda
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ type Account struct {
 	Currency     string    `json:"accountCurrency"`
 }
 
-func (c *Client) listAccountName() ([]string, error) {
+func (c *Client) ListAccountNames() ([]string, error) {
 	body, err := c.fetchAccounts()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch accout data: %v", err)

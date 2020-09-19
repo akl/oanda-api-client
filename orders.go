@@ -1,4 +1,4 @@
-package oanda_api
+package oanda
 
 import (
 	"encoding/json"
