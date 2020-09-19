@@ -1,4 +1,4 @@
-package oanda_api_client
+package oanda_api
 
 import (
 	"log"
@@ -19,8 +19,12 @@ const (
 	prefix         = "/Oanda/" + envPlaceholder
 )
 
-// ParamOandaAPIKey defines api key of oanda API.
-var ParamOandaAPIKey = Param(prefix + "APIkey")
+var (
+	// ParamOandaAPIKey defines api key of OANDA API.
+	ParamOandaAPIKey = Param(prefix + "APIkey")
+	// ParamOandaEndpoint defines end point of OANDA API.
+	ParamOandaEndpoint = Param(prefix + "Endpoint")
+)
 
 var (
 	ssmClient     *ssm.SSM
