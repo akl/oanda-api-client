@@ -21,15 +21,21 @@ const (
 
 var (
 	// ParamOandaAPIKey defines api key of OANDA API.
-	ParamOandaAPIKey = Param(prefix + "APIkey")
-	// ParamOandaEndpoint defines end point of OANDA API.
-	ParamOandaEndpoint = Param(prefix + "Endpoint")
+	ParamOandaAPIKey = Param(prefix + "/APIKey")
+	//ParamOandaAccountID defines oanda account.
+	ParamOandaAccountID = Param(prefix + "/AccountID")
+	// ParamOandaUSDJPYUnits defines USD/JPY Units.
+	ParamOandaUSDJPYUnits = Param(prefix + "/Units/USD_JPY")
+	// ParamOandaEURUSDUnits defines EUR/USD Units.
+	ParamOandaEURUSDUnits = Param(prefix + "/Units/EUR_USD")
+	// ParamOandaEURJPYUnits defines EUR/JPY Units.
+	ParamOandaEURJPYUnits = Param(prefix + "/Units/EUR_JPY")
 )
 
 var (
 	ssmClient     *ssm.SSM
 	ssmClientOnce sync.Once
-	env           = os.Getenv("ENVIRONMENT")
+	env           = os.Getenv("ENVIRONMENT") // Practice or Trade
 )
 
 func initClient() {

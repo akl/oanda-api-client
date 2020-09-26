@@ -1,90 +1,97 @@
 package oanda
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
+	"time"
 )
 
 const authorizationPrefix = "Bearer "
 
 // Client implements operations trade of oanda through OANDA API.
 type Client struct {
+	accountID       string
 	client          *http.Client
 	endpoint        string
 	requiredHeaders http.Header
 }
 
 // NewClient constructs OANDA API client objects.
-func NewClient() *Client {
+func NewClient(accountID, apiKey string, environment string) *Client {
 	requiredHeaders := http.Header{}
-	requiredHeaders.Add("Authorization", authorizationPrefix+ParamOandaAPIKey.FetchValue())
-	requiredHeaders.Add("Content-Type", "application/x-www-form-urlencoded")
+	requiredHeaders.Add("Authorization", authorizationPrefix+apiKey)
+	requiredHeaders.Add("Content-Type", "application/json")
+	var endpoint string
+	if environment == "Trade" {
+		endpoint = "https://api-fxtrade.oanda.com"
+	} else {
+		endpoint = "https://api-fxpractice.oanda.com"
+	}
 	return &Client{
+		accountID:       accountID,
 		client:          &http.Client{},
-		endpoint:        ParamOandaEndpoint.FetchValue(),
+		endpoint:        endpoint,
 		requiredHeaders: requiredHeaders,
 	}
 }
 
-func (c *Client) fetchAccounts() ([]byte, error) {
-	req, err := http.NewRequest(http.MethodGet, c.endpoint+"/v1/accounts", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build request: %v", err)
-	}
-	req.Header = c.requiredHeaders
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch response: %v", err)
-	}
-	defer safeClose(resp.Body)
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
-	}
-	return body, nil
-}
+//func (c *Client) fetchAccounts() ([]byte, error) {
+//	req, err := http.NewRequest(http.MethodGet, c.endpoint+"/v3/accounts", nil)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to build request: %v", err)
+//	}
+//	req.Header = c.requiredHeaders
+//	resp, err := c.client.Do(req)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to fetch response: %v", err)
+//	}
+//	defer safeClose(resp.Body)
+//	body, err := ioutil.ReadAll(resp.Body)
+//	if err != nil {
+//		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
+//	}
+//	if resp.StatusCode != http.StatusOK {
+//		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
+//	}
+//	return body, nil
+//}
 
-func (c *Client) fetchAccountInfo(accountID AccountID) ([]byte, error) {
-	req, err := http.NewRequest(http.MethodGet, c.endpoint+"/v1/accounts/"+strconv.FormatInt(int64(accountID), 10), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build request: %v", err)
-	}
-	req.Header = c.requiredHeaders
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch response: %v", err)
-	}
-	defer safeClose(resp.Body)
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
-	}
-	return body, nil
-}
+//func (c *Client) fetchAccountInfo(accountID AccountID) ([]byte, error) {
+//	req, err := http.NewRequest(http.MethodGet, c.endpoint+"/v3/accounts/"+string(accountID), nil)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to build request: %v", err)
+//	}
+//	req.Header = c.requiredHeaders
+//	resp, err := c.client.Do(req)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to fetch response: %v", err)
+//	}
+//	defer safeClose(resp.Body)
+//	body, err := ioutil.ReadAll(resp.Body)
+//	if err != nil {
+//		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
+//	}
+//	if resp.StatusCode != http.StatusOK {
+//		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
+//	}
+//	return body, nil
+//}
 
-func (c *Client) fetchOrders(accountID int64, count int, instrument string) ([]byte, error) {
+func (c *Client) fetchOrders() ([]byte, error) {
 	req, err := http.NewRequest(
 		http.MethodGet,
-		c.endpoint+"/v1/accounts/"+strconv.FormatInt(accountID, 10)+"/orders",
+		c.endpoint+"/v3/accounts/"+c.accountID+"/orders",
 		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %v", err)
 	}
+	c.requiredHeaders.Add("Accept-Datetime-Format", "RFC3339")
 	req.Header = c.requiredHeaders
-	req.URL.Query().Add("count", strconv.Itoa(count))
-	req.URL.Query().Add("instrument", instrument)
 	req.URL.RawQuery = req.URL.Query().Encode()
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -101,40 +108,99 @@ func (c *Client) fetchOrders(accountID int64, count int, instrument string) ([]b
 	return body, nil
 }
 
-func (c *Client) createOrder(accountID int64, reqBody string) ([]byte, error) {
+func (c *Client) updateOrder(orderID orderID, body []byte) error {
 	req, err := http.NewRequest(
-		http.MethodPost,
-		c.endpoint+"/v1/accounts/"+strconv.FormatInt(accountID, 10)+"/orders",
-		strings.NewReader(reqBody),
+		http.MethodPut,
+		c.endpoint+"/v3/accounts/"+c.accountID+"/orders/" + string(orderID),
+		bytes.NewReader(body),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build request: %v", err)
+		return fmt.Errorf("failed to build request: %v", err)
 	}
+	c.requiredHeaders.Add("Accept-Datetime-Format", "RFC3339")
 	req.Header = c.requiredHeaders
+	req.URL.RawQuery = req.URL.Query().Encode()
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch response: %v", err)
+		return fmt.Errorf("failed to fetch response: %v", err)
 	}
 	defer safeClose(resp.Body)
-	body, err := ioutil.ReadAll(resp.Body)
+	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
+		return fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("HTTP %s: %s", resp.Status, respBody)
 	}
-	return body, nil
+	return nil
 }
 
-func (c *Client) fetchOrderInfo(accountID int64, orderID int64) ([]byte, error) {
+func (c *Client) createOrder(body []byte) error {
+	req, err := http.NewRequest(
+		http.MethodPost,
+		c.endpoint+"/v3/accounts/"+c.accountID+"/orders",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return  fmt.Errorf("failed to build request: %v", err)
+	}
+	c.requiredHeaders.Add("Accept-Datetime-Format", "RFC3339")
+	req.Header = c.requiredHeaders
+	req.URL.RawQuery = req.URL.Query().Encode()
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return  fmt.Errorf("failed to fetch response: %v", err)
+	}
+	defer safeClose(resp.Body)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
+	}
+	if resp.StatusCode != http.StatusCreated {
+		return  fmt.Errorf("HTTP %s: %s", resp.Status, respBody)
+	}
+	return nil
+}
+
+//func (c *Client) fetchOrderInfo(accountID int64, orderID int64) ([]byte, error) {
+//	req, err := http.NewRequest(
+//		http.MethodGet,
+//		c.endpoint+"/v3/accounts/"+strconv.FormatInt(accountID, 10)+"/orders/"+strconv.FormatInt(orderID, 10),
+//		nil,
+//	)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to build request: %v", err)
+//	}
+//	req.Header = c.requiredHeaders
+//	resp, err := c.client.Do(req)
+//	if err != nil {
+//		return nil, fmt.Errorf("failed to fetch response: %v", err)
+//	}
+//	defer safeClose(resp.Body)
+//	body, err := ioutil.ReadAll(resp.Body)
+//	if err != nil {
+//		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
+//	}
+//	if resp.StatusCode != http.StatusOK {
+//		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
+//	}
+//	return body, nil
+//}
+
+func (c *Client) fetchOrderBook(instrument instrument, dateTime *time.Time) ([]byte, error) {
+	url := c.endpoint + "/v3/instruments/" + string(instrument) + "/orderBook"
+	if dateTime != nil {
+		url = c.endpoint + "/v3/instruments/" + string(instrument) + "/orderBook?time=" + dateTime.UTC().Format(time.RFC3339Nano)
+	}
 	req, err := http.NewRequest(
 		http.MethodGet,
-		c.endpoint+"/v1/accounts/"+strconv.FormatInt(accountID, 10)+"/orders/"+strconv.FormatInt(orderID, 10),
+		url,
 		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %v", err)
 	}
+	c.requiredHeaders.Add("Accept-Datetime-Format", "RFC3339")
 	req.Header = c.requiredHeaders
 	resp, err := c.client.Do(req)
 	if err != nil {
