@@ -111,7 +111,7 @@ func (c *Client) fetchOrders() ([]byte, error) {
 func (c *Client) updateOrder(orderID orderID, body []byte) error {
 	req, err := http.NewRequest(
 		http.MethodPut,
-		c.endpoint+"/v3/accounts/"+c.accountID+"/orders/" + string(orderID),
+		c.endpoint+"/v3/accounts/"+c.accountID+"/orders/"+string(orderID),
 		bytes.NewReader(body),
 	)
 	if err != nil {
@@ -142,14 +142,14 @@ func (c *Client) createOrder(body []byte) error {
 		bytes.NewReader(body),
 	)
 	if err != nil {
-		return  fmt.Errorf("failed to build request: %v", err)
+		return fmt.Errorf("failed to build request: %v", err)
 	}
 	c.requiredHeaders.Add("Accept-Datetime-Format", "RFC3339")
 	req.Header = c.requiredHeaders
 	req.URL.RawQuery = req.URL.Query().Encode()
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return  fmt.Errorf("failed to fetch response: %v", err)
+		return fmt.Errorf("failed to fetch response: %v", err)
 	}
 	defer safeClose(resp.Body)
 	respBody, err := ioutil.ReadAll(resp.Body)
@@ -157,7 +157,34 @@ func (c *Client) createOrder(body []byte) error {
 		return fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return  fmt.Errorf("HTTP %s: %s", resp.Status, respBody)
+		return fmt.Errorf("HTTP %s: %s", resp.Status, respBody)
+	}
+	return nil
+}
+
+func (c *Client) cancelOrder(orderID orderID) error {
+	req, err := http.NewRequest(
+		http.MethodPut,
+		c.endpoint+"/v3/accounts/"+c.accountID+"/orders/"+string(orderID)+"/cancel",
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to build request: %v", err)
+	}
+	c.requiredHeaders.Add("Accept-Datetime-Format", "RFC3339")
+	req.Header = c.requiredHeaders
+	req.URL.RawQuery = req.URL.Query().Encode()
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to fetch response: %v", err)
+	}
+	defer safeClose(resp.Body)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %s: %s", resp.Status, respBody)
 	}
 	return nil
 }

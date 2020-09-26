@@ -221,3 +221,10 @@ func (c *Client) CreateOrder(order Order) error {
 	}
 	return nil
 }
+
+func (c *Client) CancelOrder(orderID orderID) error {
+	if err := c.cancelOrder(orderID); err != nil {
+		return fmt.Errorf("failed to cancel order: %v", err)
+	}
+	return nil
+}
