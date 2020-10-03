@@ -9,9 +9,9 @@ import (
 
 func main() {
 	client := oanda.NewClient(oanda.ParamOandaAccountID.FetchValue(), oanda.ParamOandaAPIKey.FetchValue(), "Practice")
-	bytes, err := client.FetchOrdersJSON()
+	bytes, err := client.FetchOpenTradesJSON()
 	if err != nil {
-		log.Printf("failed to fetch orders: %v", err)
+		log.Printf("failed to close trade: %v", err)
 		return
 	}
 	fmt.Print(string(bytes))

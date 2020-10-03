@@ -60,26 +60,51 @@ func NewClient(accountID, apiKey string, environment string) *Client {
 //	return body, nil
 //}
 
-//func (c *Client) fetchAccountInfo(accountID AccountID) ([]byte, error) {
-//	req, err := http.NewRequest(http.MethodGet, c.endpoint+"/v3/accounts/"+string(accountID), nil)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to build request: %v", err)
-//	}
-//	req.Header = c.requiredHeaders
-//	resp, err := c.client.Do(req)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to fetch response: %v", err)
-//	}
-//	defer safeClose(resp.Body)
-//	body, err := ioutil.ReadAll(resp.Body)
-//	if err != nil {
-//		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
-//	}
-//	if resp.StatusCode != http.StatusOK {
-//		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
-//	}
-//	return body, nil
-//}
+func (c *Client) fetchOpenTrades() ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, c.endpoint+"/v3/accounts/"+c.accountID+"/openTrades", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build request: %v", err)
+	}
+	req.Header = c.requiredHeaders
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch response: %v", err)
+	}
+	defer safeClose(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
+	}
+	return body, nil
+}
+
+func (c *Client) reduceTradeSize(id tradeID, body []byte) error {
+	req, err := http.NewRequest(
+		http.MethodPut,
+		c.endpoint+"/v3/accounts/"+c.accountID+"/trades/"+string(id)+"/close",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to build request: %v", err)
+	}
+	req.Header = c.requiredHeaders
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to fetch response: %v", err)
+	}
+	defer safeClose(resp.Body)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %s: %s", resp.Status, respBody)
+	}
+	return nil
+}
 
 func (c *Client) fetchOrders() ([]byte, error) {
 	req, err := http.NewRequest(

@@ -2,17 +2,16 @@ package main
 
 import (
 	"fmt"
-	"log"
-
 	"github.com/yuki-inoue-eng/oanda-api-client"
+	"log"
 )
 
+// example
 func main() {
 	client := oanda.NewClient(oanda.ParamOandaAccountID.FetchValue(), oanda.ParamOandaAPIKey.FetchValue(), "Practice")
-	bytes, err := client.FetchOrdersJSON()
-	if err != nil {
-		log.Printf("failed to fetch orders: %v", err)
+	if err := client.CancelOrder("21"); err != nil {
+		log.Println(err)
 		return
 	}
-	fmt.Print(string(bytes))
+	fmt.Printf("order canceled")
 }

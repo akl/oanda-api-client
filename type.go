@@ -39,6 +39,8 @@ type timeInForce string
 
 type orderID string
 
+type tradeID string
+
 type instrument string
 
 type Unit int

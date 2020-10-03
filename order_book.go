@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+
+
 type book struct {
 	Instrument  string    `json:"instrument"`
 	Time        time.Time `json:"time"`
@@ -14,6 +16,11 @@ type book struct {
 	BucketWidth string    `json:"bucketWidth"`
 	Buckets     []bucket  `json:"buckets"`
 }
+
+type retrievedBook struct {
+	Book book `json:"orderBook"`
+}
+
 type bucket struct {
 	Price             string `json:"price"`
 	LongCountPercent  string `json:"longCountPercent"`
@@ -67,6 +74,9 @@ func (b *book) toOrderBook() (*OrderBook, error) {
 func (o *OrderBook) ExtractBucketVicinityOfPrice(price Price, n int) (short, long []OrderBookBucket, err error) {
 	var lowerBuckets []OrderBookBucket
 	var higherBuckets []OrderBookBucket
+
+	fmt.Printf("buckets.len = %d\n",len(o.Buckets))
+
 	for i, b := range o.Buckets {
 		if b.Price > price {
 			lowerBuckets = o.Buckets[:i-1]
@@ -74,16 +84,24 @@ func (o *OrderBook) ExtractBucketVicinityOfPrice(price Price, n int) (short, lon
 			break
 		}
 	}
+
+	fmt.Printf("lower.len = %d\n",len(lowerBuckets))
+	fmt.Printf("higher.len = %d\n",len(higherBuckets))
+
 	for i, j := 0, len(lowerBuckets)-1; i < j; i, j = i+1, j-1 {
 		lowerBuckets[i], lowerBuckets[j] = lowerBuckets[j], lowerBuckets[i]
 	}
-	if len(lowerBuckets[:n-1]) < n {
-		return nil,nil, fmt.Errorf("price is too low: lowerBuckets[%d] is not exist", n-1)
+
+	fmt.Printf("lower.len = %d\n",len(lowerBuckets))
+	fmt.Printf("higher.len = %d\n",len(higherBuckets))
+
+	if len(lowerBuckets[:n]) < n {
+		return nil, nil, fmt.Errorf("price is too low: lowerBuckets[%d] is not exist", n-1)
 	}
-	if len(lowerBuckets[:n-1]) < n {
-		return  nil, nil, fmt.Errorf("price is too high: higherBuckets[%d] is not exist", n-1)
+	if len(higherBuckets[:n]) < n {
+		return nil, nil, fmt.Errorf("price is too high: higherBuckets[%d] is not exist", n-1)
 	}
-	return lowerBuckets[:n-1], higherBuckets[:n-1], nil
+	return lowerBuckets[:n], higherBuckets[:n], nil
 }
 
 func (c *Client) FetchOrderBook(instrument instrument, dateTime *time.Time) (*OrderBook, error) {
@@ -91,23 +109,17 @@ func (c *Client) FetchOrderBook(instrument instrument, dateTime *time.Time) (*Or
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch order book: %v", err)
 	}
-	var b book
-	if err := json.Unmarshal(body, &b); err != nil {
+	var rb retrievedBook
+	if err := json.Unmarshal(body, &rb); err != nil {
 		return nil, fmt.Errorf("failed to json unmarshal: %v", err)
 	}
-	ob, err := b.toOrderBook()
+	ob, err := rb.Book.toOrderBook()
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert book to order book: %v", err)
 	}
 	return ob, nil
 }
 
-func (c *Client) UpdateOder(order Order){
-
-}
-
 func (c *Client) FetchOrderBookJSON(instrument instrument, dateTime *time.Time) ([]byte, error) {
 	return c.fetchOrderBook(instrument, dateTime)
 }
-
-
