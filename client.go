@@ -44,7 +44,9 @@ func (c *Client) fetchOpenTrades() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %v", err)
 	}
+	c.requiredHeaders.Add("Accept-Datetime-Format", "RFC3339")
 	req.Header = c.requiredHeaders
+	req.URL.RawQuery = req.URL.Query().Encode()
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch response: %v", err)
