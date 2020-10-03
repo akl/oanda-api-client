@@ -39,27 +39,6 @@ func NewClient(accountID, apiKey string, environment string) *Client {
 	}
 }
 
-//func (c *Client) fetchAccounts() ([]byte, error) {
-//	req, err := http.NewRequest(http.MethodGet, c.endpoint+"/v3/accounts", nil)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to build request: %v", err)
-//	}
-//	req.Header = c.requiredHeaders
-//	resp, err := c.client.Do(req)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to fetch response: %v", err)
-//	}
-//	defer safeClose(resp.Body)
-//	body, err := ioutil.ReadAll(resp.Body)
-//	if err != nil {
-//		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
-//	}
-//	if resp.StatusCode != http.StatusOK {
-//		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
-//	}
-//	return body, nil
-//}
-
 func (c *Client) fetchOpenTrades() ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, c.endpoint+"/v3/accounts/"+c.accountID+"/openTrades", nil)
 	if err != nil {
@@ -213,31 +192,6 @@ func (c *Client) cancelOrder(orderID orderID) error {
 	}
 	return nil
 }
-
-//func (c *Client) fetchOrderInfo(accountID int64, orderID int64) ([]byte, error) {
-//	req, err := http.NewRequest(
-//		http.MethodGet,
-//		c.endpoint+"/v3/accounts/"+strconv.FormatInt(accountID, 10)+"/orders/"+strconv.FormatInt(orderID, 10),
-//		nil,
-//	)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to build request: %v", err)
-//	}
-//	req.Header = c.requiredHeaders
-//	resp, err := c.client.Do(req)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to fetch response: %v", err)
-//	}
-//	defer safeClose(resp.Body)
-//	body, err := ioutil.ReadAll(resp.Body)
-//	if err != nil {
-//		return nil, fmt.Errorf("HTTP %s: failed to read response body: %v", resp.Status, err)
-//	}
-//	if resp.StatusCode != http.StatusOK {
-//		return nil, fmt.Errorf("HTTP %s: %s", resp.Status, body)
-//	}
-//	return body, nil
-//}
 
 func (c *Client) fetchOrderBook(instrument instrument, dateTime *time.Time) ([]byte, error) {
 	url := c.endpoint + "/v3/instruments/" + string(instrument) + "/orderBook"

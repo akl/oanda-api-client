@@ -74,9 +74,6 @@ func (b *book) toOrderBook() (*OrderBook, error) {
 func (o *OrderBook) ExtractBucketVicinityOfPrice(price Price, n int) (short, long []OrderBookBucket, err error) {
 	var lowerBuckets []OrderBookBucket
 	var higherBuckets []OrderBookBucket
-
-	fmt.Printf("buckets.len = %d\n",len(o.Buckets))
-
 	for i, b := range o.Buckets {
 		if b.Price > price {
 			lowerBuckets = o.Buckets[:i-1]
@@ -84,17 +81,9 @@ func (o *OrderBook) ExtractBucketVicinityOfPrice(price Price, n int) (short, lon
 			break
 		}
 	}
-
-	fmt.Printf("lower.len = %d\n",len(lowerBuckets))
-	fmt.Printf("higher.len = %d\n",len(higherBuckets))
-
 	for i, j := 0, len(lowerBuckets)-1; i < j; i, j = i+1, j-1 {
 		lowerBuckets[i], lowerBuckets[j] = lowerBuckets[j], lowerBuckets[i]
 	}
-
-	fmt.Printf("lower.len = %d\n",len(lowerBuckets))
-	fmt.Printf("higher.len = %d\n",len(higherBuckets))
-
 	if len(lowerBuckets[:n]) < n {
 		return nil, nil, fmt.Errorf("price is too low: lowerBuckets[%d] is not exist", n-1)
 	}
